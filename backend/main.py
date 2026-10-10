@@ -15,30 +15,41 @@ from backend.api.routes import router
 
 logger=logging.getLogger('ats_resume_scorer')
 
+def get_nlp(app: FastAPI):
+    if getattr(app.state, 'nlp', None) is None:
+        import spacy
+        try:
+            app.state.nlp = spacy.load(SPACY_MODEL_PRIMARY)
+        except Exception:
+            try:
+                app.state.nlp = spacy.load(SPACY_MODEL_SECONDARY)
+            except Exception:
+                app.state.nlp = spacy.blank("en")
+    return app.state.nlp
+
+def get_embedder(app: FastAPI):
+    if getattr(app.state, 'embedder', None) is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+            app.state.embedder = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
+        except Exception as e:
+            logger.warning(f"SentenceTransformer fallback: {e}")
+            app.state.embedder = None
+    return app.state.embedder
+
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     logger.info('Starting ATS Resume Analyzer API...')
-
-    logger.info(f'Loading spaCy NLP model: {SPACY_MODEL_PRIMARY}')
-    import spacy
-    try:
-        app.state.nlp = spacy.load(SPACY_MODEL_PRIMARY)
-        logger.info(f'Loaded {SPACY_MODEL_PRIMARY}')
-    except OSError:
-        logger.warning(f'{SPACY_MODEL_PRIMARY} not found — falling back to {SPACY_MODEL_SECONDARY}')
-        app.state.nlp = spacy.load(SPACY_MODEL_SECONDARY)
-        logger.info(f'Loaded {SPACY_MODEL_SECONDARY} (fallback)')
-
-    logger.info(f'Loading SentenceTransformer: {SENTENCE_TRANSFORMER_MODEL}')
-    from sentence_transformers import SentenceTransformer
-    app.state.embedder = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
-    logger.info(f'Loaded {SENTENCE_TRANSFORMER_MODEL}')
-
-    logger.info('All models loaded. API is ready to serve requests.')
-
+    app.state.nlp = None
+    app.state.embedder = None
+    
+    # Pre-warm lightweight nlp model asynchronously
+    import asyncio
+    asyncio.create_task(asyncio.to_thread(get_nlp, app))
+    
+    logger.info('API is ready to serve requests immediately.')
     yield
-
-    logger.info('shutting down the api!!')
+    logger.info('Shutting down API.')
 
 app=FastAPI(
     title=APP_TITLE, 

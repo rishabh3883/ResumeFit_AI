@@ -17,11 +17,9 @@ pydantic>=2.6
 python-multipart>=0.0.9      # required by FastAPI for File/Form uploads
 python-dotenv>=1.0
 
-# ── Backend: NLP / ML (Optimized for Free Cloud Instances <512MB RAM) ──
---extra-index-url https://download.pytorch.org/whl/cpu
-torch>=2.0.0
+# ── Backend: NLP / ML ──
 spacy>=3.7,<4.0
-https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl
 sentence-transformers>=2.5
 numpy>=1.26
 rapidfuzz>=3.6

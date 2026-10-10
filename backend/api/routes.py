@@ -30,8 +30,9 @@ async def analyze_resume(
     warnings: List[str] = []
 
 
-    nlp      = request.app.state.nlp
-    embedder = request.app.state.embedder
+    from backend.main import get_nlp, get_embedder
+    nlp      = get_nlp(request.app)
+    embedder = get_embedder(request.app)
 
 
     try:
@@ -123,11 +124,10 @@ async def analyze_resume(
 
 @router.get('/health')
 async def health_check(request: Request):
-    """Health check — confirms models are loaded and the API is ready."""
+    """Health check — confirms the API server is alive and ready."""
     return {
-        'status':          'healthy',
-        'nlp_loaded':      request.app.state.nlp is not None,
-        'embedder_loaded': request.app.state.embedder is not None,
+        'status': 'healthy',
+        'service': 'ATS Resume Analyzer API',
     }
 
 @router.get('/history')
