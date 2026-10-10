@@ -12,16 +12,33 @@ from backend.utils.matching import fuzzy_match_keywords, normalize_skill
 from rapidfuzz import fuzz
 
 
-def calculate_semantic_similarity(
-    resume_text: str, jd_text: str, embedder: SentenceTransformer
-) -> float:
-    resume_emb = embedder.encode(resume_text[:5000], convert_to_tensor=False)
-    jd_emb     = embedder.encode(jd_text[:5000], convert_to_tensor=False)
+def _tfidf_similarity(text1: str, text2: str) -> float:
+    try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+        vec = TfidfVectorizer(stop_words='english', max_features=1000)
+        matrix = vec.fit_transform([text1[:5000], text2[:5000]])
+        sim = cosine_similarity(matrix[0:1], matrix[1:2])[0][0]
+        return float(np.clip(sim, 0.0, 1.0))
+    except Exception:
+        return 0.5
 
-    similarity = np.dot(resume_emb, jd_emb) / (
-        np.linalg.norm(resume_emb) * np.linalg.norm(jd_emb)
-    )
-    return float(np.clip(similarity, 0.0, 1.0))
+
+def calculate_semantic_similarity(
+    resume_text: str, jd_text: str, embedder = None
+) -> float:
+    if embedder is not None:
+        try:
+            resume_emb = embedder.encode(resume_text[:5000], convert_to_tensor=False)
+            jd_emb     = embedder.encode(jd_text[:5000], convert_to_tensor=False)
+
+            similarity = np.dot(resume_emb, jd_emb) / (
+                np.linalg.norm(resume_emb) * np.linalg.norm(jd_emb) + 1e-9
+            )
+            return float(np.clip(similarity, 0.0, 1.0))
+        except Exception as e:
+            pass
+    return _tfidf_similarity(resume_text, jd_text)
 
 
 def identify_matched_keywords(
