@@ -40,21 +40,28 @@ def validate_file(file_data:bytes, filename:str)->Tuple[bool, str, Optional[str]
     if file_size_bytes==0:
         return False, 'uploade file is empty...please check the file you have uploaded and try again'
     
+    mime_type = None
     try:
-        mime_type=magic.from_buffer(file_data, mime=True)
-    except Exception as e:
-        return False, f"error deteminin the file type : {e}", None
+        mime_type = magic.from_buffer(file_data, mime=True)
+    except Exception:
+        pass
     
-    if mime_type not in SUPPORTED_MIME_TYPES:
-        supported=', '.join(SUPPORTED_MIME_TYPES.keys()).upper()
-        return False, (
-            f'Unsupported file type: {mime_type}. '
-            f'Please upload one of: {supported}.'
-        ), None
-    
-    
+    if mime_type in SUPPORTED_MIME_TYPES:
+        return True, '', SUPPORTED_MIME_TYPES[mime_type]
 
-    return True, '', SUPPORTED_MIME_TYPES[mime_type]
+    ext = (filename or '').lower()
+    if ext.endswith('.pdf') or file_data.startswith(b'%PDF'):
+        return True, '', 'pdf'
+    if ext.endswith('.docx') or file_data.startswith(b'PK'):
+        return True, '', 'docx'
+    if ext.endswith('.doc'):
+        return True, '', 'doc'
+    
+    supported=', '.join(SUPPORTED_MIME_TYPES.keys()).upper()
+    return False, (
+        f'Unsupported file type: {mime_type or "unknown"}. '
+        f'Please upload one of: PDF, DOCX.'
+    ), None
 
 def _extract_pdf_hyperlinks(file_data: bytes) -> str:
     urls = []
