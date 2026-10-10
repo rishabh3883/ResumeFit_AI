@@ -63,9 +63,11 @@ def sign_in_with_password(email: str, password: str) -> Dict[str, Any]:
     err = _missing_config()
     if err:
         return {'error': err}
+    clean_email = (email or '').strip().lower()
+    clean_password = (password or '').strip()
     try:
         resp = get_client().auth.sign_in_with_password(
-            {'email': email, 'password': password}
+            {'email': clean_email, 'password': clean_password}
         )
         if not resp.session or not resp.user:
             return {'error': 'Invalid credentials'}
@@ -79,12 +81,14 @@ def sign_up_with_password(email: str, password: str) -> Dict[str, Any]:
     err = _missing_config()
     if err:
         return {'error': err}
+    clean_email = (email or '').strip().lower()
+    clean_password = (password or '').strip()
     try:
-        resp = get_client().auth.sign_up({'email': email, 'password': password})
+        resp = get_client().auth.sign_up({'email': clean_email, 'password': clean_password})
         if resp.session and resp.user:
             return _session_dict(resp.session, resp.user)
         if resp.user:
-            return {'pending_confirmation': True, 'email': email}
+            return {'pending_confirmation': True, 'email': clean_email}
         return {'error': 'Sign-up failed'}
     except Exception as exc:
         logger.warning(f'sign_up failed: {exc}')
